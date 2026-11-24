@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulador de inventario de llantas</title>
+<style>
+:root{--navy:#0b2545;--navy2:#13315c;--bg:#eef1f6;--card:#fff;--tx:#1a2233;--mut:#5b6678;--bd:#d9dee8;--ac:#1d4ed8;--ac2:#c8963e;--bad:#b42318;--hd:#f1f4f9}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+/* PORTADA */
+#portada{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;padding:32px 16px;background:radial-gradient(circle at 20% 10%,#1d4a85 0,transparent 45%),linear-gradient(160deg,var(--navy),#06142b)}
+.pw{max-width:860px;width:100%}
+.logos{display:flex;gap:18px;justify-content:center;align-items:center;flex-wrap:wrap}
+.logo{height:84px;min-width:84px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:12px;padding:8px 14px}
+.logo img{max-height:100%;max-width:200px;object-fit:contain}
+.logo.empty{background:transparent;border:2px dashed rgba(255,255,255,.4);color:rgba(255,255,255,.6);font-size:.8rem}
+.logo.empty::after{content:attr(data-ph)}
+.kick{letter-spacing:.18em;text-transform:uppercase;font-size:.8rem;color:var(--ac2);margin:34px 0 8px;font-weight:600}
+#portada h1{font-size:clamp(1.9rem,5vw,3rem);line-height:1.15;margin:0 0 12px;font-weight:700}
+.psub{color:#c5d2e8;max-width:620px;margin:0 auto 30px}
+.team{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px}
+.team div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:12px 14px;font-weight:600}
+.team small{display:block;color:var(--ac2);font-weight:500;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
+.prof{color:#c5d2e8;margin:14px 0 30px}
+.cta{font:inherit;font-weight:600;font-size:1.05rem;background:var(--ac2);color:#1b1305;border:0;border-radius:8px;padding:14px 34px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.cta:hover{filter:brightness(1.08)}
+/* APP */
+.top{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;border-bottom:3px solid var(--ac2);position:sticky;top:0;z-index:5}
+.top .logos{gap:10px}.top .logo{height:44px;min-width:44px;padding:4px 8px;border-radius:8px}
+.top .logo.empty{border-color:rgba(255,255,255,.35)}
+.top b{font-size:1.05rem;flex:1}.top button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;padding:7px 14px}
+main{max-width:1120px;margin:0 auto;padding:22px 16px 40px}
+h2{font-size:1rem;margin:0 0 14px;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;border-left:4px solid var(--ac2);padding-left:10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:18px;margin-bottom:18px;box-shadow:0 1px 3px rgba(11,37,69,.06)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+label{display:flex;flex-direction:column;font-size:.78rem;font-weight:600;color:var(--mut);gap:4px}
+input,select{font:inherit;color:var(--tx);background:#fff;border:1px solid var(--bd);border-radius:6px;padding:7px 9px;width:100%}
+input:focus,select:focus{outline:2px solid var(--ac);border-color:var(--ac)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+button{font:inherit;font-weight:600;border:0;border-radius:6px;padding:9px 18px;cursor:pointer;background:var(--navy2);color:#fff}
+button:hover{background:var(--navy)}button.s{background:#fff;color:var(--navy2);border:1px solid var(--bd)}
+.err{color:var(--bad);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--bd);border-top:4px solid var(--ac2);border-radius:10px;padding:14px 16px}
+.kpi b{display:block;font-size:1.45rem;color:var(--navy);margin-top:2px}.kpi span{font-size:.75rem;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;font-weight:600}.kpi small{color:var(--mut)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:18px}
+.sc{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.84rem;white-space:nowrap}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--bd)}
+th{background:var(--navy2);color:#fff;font-weight:600;position:sticky;top:0}th:first-child,td:first-child{text-align:left}
+tbody tr:nth-child(even),table tr:nth-child(even) td{background:#f7f9fc}
+tr.t td{font-weight:700;background:#e4eaf4!important;color:var(--navy)}
+.note{font-size:.8rem;color:var(--mut);margin-top:8px}
+svg{width:100%;height:auto;display:block}svg text{fill:var(--mut);font-size:11px}
+.lg{display:flex;gap:14px;font-size:.8rem;color:var(--mut);margin-top:4px;flex-wrap:wrap}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+@media(max-width:480px){.two{grid-template-columns:1fr}.top b{font-size:.85rem}}
+</style>
+</head>
+<body>
+<section id="portada"><div class="pw">
+<div class="logos" id="lg1"></div>
+<p class="kick" id="pmat"></p>
+<h1 id="ptit"></h1>
+<p class="psub" id="pdesc"></p>
+<div class="team" id="pteam"></div>
+<p class="prof" id="pprof"></p>
+<button class="cta" onclick="entrar()">Entrar al simulador →</button>
+</div></section>
+<div id="app" hidden>
+<header class="top"><div class="logos" id="lg2"></div><b id="htit"></b><button onclick="volver()">Inicio</button></header>
+<main>
+
+<section class="card">
+<h2>Parámetros</h2>
+<div class="grid" id="ps"></div>
+<div class="row">
+<label style="min-width:240px">Generador de demanda
+<select id="mode"><option value="x">Fórmula del Excel (original)</option><option value="s">Triangular estándar (inversa exacta)</option></select></label>
+</div>
+<div class="row">
+<button onclick="go()">Simular corridas</button>
+<button class="s" onclick="reset()">Restablecer valores del Excel</button>
+<span id="msg" class="err"></span>
+</div>
+</section>
+
+<div id="out"></div>
+<p class="note">Igual que en el Excel, la ganancia neta = ingresos − costo de lo vendido − gastos operativos − costo por pedido; la pérdida económica = ventas perdidas × (precio − costo).</p>
+</main></div>
+<script>
+
+const INFO={
+ materia:'Simulación',
+ titulo:'Simulador de inventario de llantas',
+ desc:'Simulación Monte Carlo con demanda triangular y política de reorden, con generación de corridas y estadísticas.',
+ integrantes:['SAUCEDO CARDEÑAS JESUS EMMANUEL','TONCHEZ LAYNES CHRISTIAN ALEXANDER','UC RAMON JORGE ANDRES',
+ 'MORENO MARTAGON ROBERTO CARLOS'],
+ profesor:'profesor: ZAVALA KU ABELARDO JESUS',
+ logos:['logo1.jpeg','logo2.jpeg'] 
+};
+const logoHTML=INFO.logos.map((s,i)=>`<div class="logo" data-ph="Logo ${i+1}"><img src="${s}" alt="Logo ${i+1}" onerror="this.parentNode.classList.add('empty');this.remove()"></div>`).join('');
+['lg1','lg2'].forEach(id=>document.getElementById(id).innerHTML=logoHTML);
+document.getElementById('pmat').textContent=INFO.materia;
+document.getElementById('ptit').textContent=INFO.titulo;
+document.getElementById('htit').textContent=INFO.titulo;
+document.getElementById('pdesc').textContent=INFO.desc;
+document.getElementById('pprof').textContent=INFO.profesor;
+document.getElementById('pteam').innerHTML=INFO.integrantes.map(n=>`<div><small>Integrante</small>${n}</div>`).join('');
+function entrar(){document.getElementById('portada').hidden=true;document.getElementById('app').hidden=false;scrollTo(0,0)}
+function volver(){document.getElementById('app').hidden=true;document.getElementById('portada').hidden=false;scrollTo(0,0)}
+
+const F=[['inv0','Inventario inicial (llantas)',127],['Q','Cantidad por pedido (llantas)',127],['R','Punto de reorden (llantas)',10],['L','Tiempo de entrega (días)',3],['price','Precio de venta por llanta ($)',1500],['cost','Costo de compra por llanta ($)',1000],['opex','Gastos operativos diarios ($)',200],['oc','Costo por pedido ($)',0],['a','Demanda mínima (a)',5],['b','Demanda máxima (b)',15],['c','Demanda más probable (c)',10],['days','Días por corrida',26],['n','Número de corridas',200],['seed','Semilla (vacío = aleatoria)','']];
+const $=id=>document.getElementById(id);
+function reset(){$('ps').innerHTML=F.map(([k,t,v])=>`<label>${t}<input id="${k}" type="number" step="any" value="${v}"></label>`).join('');$('mode').value='x'}
+reset();
+const nf=(v,d=0)=>v.toLocaleString('es-MX',{minimumFractionDigits:d,maximumFractionDigits:d});
+const money=v=>'$'+nf(v),pct=v=>nf(v*100,1)+'%',dec=v=>nf(v,1);
+function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function dem(u,p){const Fc=(p.c-p.a)/(p.b-p.a);
+ if(p.mode==='x')return u<=Fc?p.a+(p.c-p.a)*Math.sqrt(u):p.b-(p.b-p.c)*Math.sqrt(1-u);
+ return u<=Fc?p.a+Math.sqrt(u*(p.b-p.a)*(p.c-p.a)):p.b-Math.sqrt((1-u)*(p.b-p.a)*(p.b-p.c))}
+function run(p,r){const rows=[],orders=[];let inv=p.inv0;
+ for(let t=1;t<=p.days;t++){
+  const u=r(),d=Math.ceil(dem(u,p));let arr=0;
+  for(const o of orders)if(o.at===t)arr+=o.q;
+  const av=inv+arr,sold=Math.min(d,av),lost=Math.max(0,d-sold);inv=av-sold;
+  let ord=0,due='';
+  if(inv<=p.R&&!orders.some(o=>o.at>t)){ord=p.Q;due=t+p.L;orders.push({at:due,q:ord})}
+  rows.push({t,u,d,arr,inv,ord,due,sold,lost,ing:sold*p.price,cv:sold*p.cost,opex:p.opex,
+   net:sold*p.price-sold*p.cost-p.opex-(ord>0?p.oc:0),loss:lost*(p.price-p.cost)});
+ }
+ const S=k=>rows.reduce((s,x)=>s+x[k],0),sold=S('sold'),lost=S('lost');
+ return{rows,T:{net:S('net'),ing:S('ing'),cv:S('cv'),opex:S('opex'),loss:S('loss'),sold,lost,
+  svc:sold+lost?sold/(sold+lost):1,orders:rows.filter(x=>x.ord>0).length,inv:S('inv')/rows.length,stk:rows.filter(x=>x.lost>0).length}}}
+const M=[['net','Ganancia neta ($)',money],['ing','Ingresos ($)',money],['cv','Costo de ventas ($)',money],['opex','Gastos operativos ($)',money],['loss','Pérdida económica ($)',money],['sold','Ventas reales (llantas)',v=>nf(v,1)],['lost','Ventas perdidas (llantas)',v=>nf(v,1)],['svc','Nivel de servicio',pct],['orders','Pedidos realizados',dec],['inv','Inventario final promedio (llantas)',dec],['stk','Días con faltante',dec]];
+function stats(x){const n=x.length,m=x.reduce((s,v)=>s+v,0)/n,sd=n>1?Math.sqrt(x.reduce((s,v)=>s+(v-m)**2,0)/(n-1)):0,s=[...x].sort((a,b)=>a-b);
+ const q=p=>{const i=(n-1)*p,l=Math.floor(i);return s[l]+(s[Math.min(l+1,n-1)]-s[l])*(i-l)},h=1.96*sd/Math.sqrt(n);
+ return{m,sd,min:s[0],med:q(.5),max:s[n-1],p5:q(.05),p95:q(.95),lo:m-h,hi:m+h}}
+let P,runs=[],sel=1,hm='net';
+function go(){const p={};$('msg').textContent='';
+ for(const[k]of F)p[k]=$(k).value===''?null:+$(k).value;
+ p.mode=$('mode').value;let e='';
+ if(!(p.a<p.b&&p.a<=p.c&&p.c<=p.b))e='Se requiere a < b y a ≤ c ≤ b.';
+ else if(p.days<1||p.n<1||p.L<1||[p.inv0,p.Q,p.R,p.price,p.cost,p.opex,p.oc].some(v=>v==null||v<0))e='Revisa los valores: no pueden ser negativos o vacíos (entrega ≥ 1 día).';
+ if(e){$('msg').textContent=e;return}
+ p.days=Math.floor(p.days);p.n=Math.min(5000,Math.floor(p.n));
+ const r=rng(p.seed==null?Math.floor(Math.random()*2**31):p.seed);
+ P=p;runs=[];for(let i=0;i<p.n;i++)runs.push(run(p,r));sel=1;render()}
+function hist(v,mean,fmt){const n=v.length,k=Math.min(14,Math.max(5,Math.ceil(Math.sqrt(n)))),mn=Math.min(...v),mx=Math.max(...v),w=(mx-mn)/k||1,c=Array(k).fill(0);
+ v.forEach(x=>c[Math.min(k-1,Math.floor((x-mn)/w))]++);
+ const W=560,H=240,L=36,B=30,T=10,mc=Math.max(...c),bw=(W-L-10)/k;
+ let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Histograma">`;
+ c.forEach((x,i)=>{const h=(H-B-T)*x/mc;s+=`<rect x="${L+i*bw+1}" y="${H-B-h}" width="${bw-2}" height="${h}" rx="2" fill="var(--ac)"><title>${x} corridas</title></rect>`});
+ const mx0=L+((mean-mn)/(mx-mn||1))*(W-L-10);
+ s+=`<line x1="${L}" x2="${W-10}" y1="${H-B}" y2="${H-B}" stroke="var(--bd)"/><line x1="${mx0}" x2="${mx0}" y1="${T}" y2="${H-B}" stroke="var(--ac2)" stroke-width="2" stroke-dasharray="4 3"/>
+ <text x="${L}" y="${H-10}">${fmt(mn)}</text><text x="${W-10}" y="${H-10}" text-anchor="end">${fmt(mx)}</text><text x="${L-4}" y="${T+8}" text-anchor="end">${mc}</text><text x="${L-4}" y="${H-B}" text-anchor="end">0</text></svg>`;
+ return s}
+function lineChart(rows){const W=560,H=240,L=36,B=30,T=10,n=rows.length,mx=Math.max(1,...rows.map(r=>Math.max(r.inv,r.d)),P.R),bw=(W-L-10)/n,y=v=>H-B-(H-B-T)*v/mx;
+ let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Inventario y demanda por día">`;
+ rows.forEach((r,i)=>s+=`<rect x="${L+i*bw+1}" y="${y(r.d)}" width="${Math.max(1,bw-2)}" height="${H-B-y(r.d)}" fill="var(--ac2)" opacity=".55"><title>Día ${r.t}: demanda ${r.d}</title></rect>`);
+ s+=`<polyline fill="none" stroke="var(--ac)" stroke-width="2" points="${rows.map((r,i)=>`${L+i*bw+bw/2},${y(r.inv)}`).join(' ')}"/>
+ <line x1="${L}" x2="${W-10}" y1="${y(P.R)}" y2="${y(P.R)}" stroke="var(--bad)" stroke-dasharray="4 3"/>
+ <line x1="${L}" x2="${W-10}" y1="${H-B}" y2="${H-B}" stroke="var(--bd)"/>
+ <text x="${L}" y="${H-10}">Día 1</text><text x="${W-10}" y="${H-10}" text-anchor="end">Día ${n}</text><text x="${L-4}" y="${T+8}" text-anchor="end">${mx}</text><text x="${L-4}" y="${H-B}" text-anchor="end">0</text></svg>
+ <div class="lg"><span><i style="background:var(--ac)"></i>Inventario final</span><span><i style="background:var(--ac2)"></i>Demanda</span><span><i style="background:var(--bad)"></i>Punto de reorden</span></div>`;
+ return s}
+function setSel(v){sel=Math.min(runs.length,Math.max(1,Math.floor(+v)||1));render()}
+function setHm(v){hm=v;render()}
+function render(){
+ const ST={};M.forEach(([k])=>ST[k]=stats(runs.map(r=>r.T[k])));
+ const K=(k,t,f,sub)=>`<div class="kpi"><span>${t}</span><b>${f(ST[k].m)}</b><small>${sub}</small></div>`;
+ const hmM=M.find(m=>m[0]===hm),vals=runs.map(r=>r.T[hm]);
+ const run1=runs[sel-1],rows=run1.rows,tot=k=>rows.reduce((s,r)=>s+r[k],0),av=k=>tot(k)/rows.length;
+ $('out').innerHTML=`
+ <div class="kpis">${K('net','Ganancia neta media',money,'± '+money(ST.net.sd)+' (desv. est.)')}${K('lost','Ventas perdidas medias',v=>nf(v,1)+' llantas','por corrida de '+P.days+' días')}${K('svc','Nivel de servicio medio',pct,'demanda satisfecha')}${K('orders','Pedidos medios',dec,'por corrida')}</div>
+ <section class="card"><h2>Estadísticas de ${runs.length} corridas (totales por corrida)</h2><div class="sc"><table><tr><th>Indicador</th><th>Media</th><th>Desv. est.</th><th>Mín.</th><th>P5</th><th>Mediana</th><th>P95</th><th>Máx.</th><th>IC 95% de la media</th></tr>
+ ${M.map(([k,t,f])=>{const s=ST[k];return`<tr><td>${t}</td><td>${f(s.m)}</td><td>${f(s.sd)}</td><td>${f(s.min)}</td><td>${f(s.p5)}</td><td>${f(s.med)}</td><td>${f(s.p95)}</td><td>${f(s.max)}</td><td>${f(s.lo)} – ${f(s.hi)}</td></tr>`}).join('')}</table></div></section>
+ <div class="two">
+ <section class="card"><h2>Distribución entre corridas</h2><label>Indicador<select onchange="setHm(this.value)">${M.map(([k,t])=>`<option value="${k}"${k===hm?' selected':''}>${t}</option>`).join('')}</select></label>${hist(vals,ST[hm].m,hmM[2])}<div class="lg"><span><i style="background:var(--ac)"></i>Frecuencia de corridas</span><span><i style="background:var(--ac2)"></i>Media: ${hmM[2](ST[hm].m)}</span></div></section>
+ <section class="card"><h2>Corrida #${sel} de ${runs.length}</h2><label style="max-width:160px">Ver corrida<input type="number" min="1" max="${runs.length}" value="${sel}" onchange="setSel(this.value)"></label>${lineChart(rows)}</section></div>
+ <section class="card"><h2>Detalle de la corrida #${sel}</h2><div class="sc" style="max-height:520px;overflow-y:auto"><table><tr><th>Día</th><th>N° aleatorio</th><th>Demanda</th><th>Llegada</th><th>Inv. final</th><th>Pedido</th><th>Día entrega</th><th>Ventas reales</th><th>Ventas perdidas</th><th>Ingresos ($)</th><th>Costo venta ($)</th><th>Gastos ($)</th><th>Ganancia neta ($)</th><th>Pérdida econ. ($)</th></tr>
+ ${rows.map(r=>`<tr><td>${r.t}</td><td>${nf(r.u,4)}</td><td>${r.d}</td><td>${r.arr||'-'}</td><td>${r.inv}</td><td>${r.ord||'-'}</td><td>${r.due||'-'}</td><td>${r.sold}</td><td>${r.lost}</td><td>${nf(r.ing)}</td><td>${nf(r.cv)}</td><td>${nf(r.opex)}</td><td>${nf(r.net)}</td><td>${nf(r.loss)}</td></tr>`).join('')}
+ <tr class="t"><td>Promedio diario</td><td></td><td>${dec(av('d'))}</td><td>${dec(av('arr'))}</td><td>${dec(av('inv'))}</td><td>${dec(av('ord'))}</td><td></td><td>${dec(av('sold'))}</td><td>${dec(av('lost'))}</td><td>${nf(av('ing'))}</td><td>${nf(av('cv'))}</td><td>${nf(av('opex'))}</td><td>${nf(av('net'))}</td><td>${nf(av('loss'))}</td></tr>
+ <tr class="t"><td>Total</td><td></td><td>${tot('d')}</td><td>${tot('arr')}</td><td></td><td>${tot('ord')}</td><td></td><td>${tot('sold')}</td><td>${tot('lost')}</td><td>${nf(tot('ing'))}</td><td>${nf(tot('cv'))}</td><td>${nf(tot('opex'))}</td><td>${nf(tot('net'))}</td><td>${nf(tot('loss'))}</td></tr></table></div></section>`}
+go();
+</script>
+</body>
+</html>
