@@ -54,6 +54,18 @@ svg{width:100%;height:auto;display:block}svg text{fill:var(--mut);font-size:11px
 .lg{display:flex;gap:14px;font-size:.8rem;color:var(--mut);margin-top:4px;flex-wrap:wrap}
 .lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
 @media(max-width:480px){.two{grid-template-columns:1fr}.top b{font-size:.85rem}}
+.fab{position:fixed;right:20px;bottom:20px;z-index:20;background:var(--ac2);color:#1b1305;border-radius:999px;padding:12px 20px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.fab:hover{background:var(--ac2);filter:brightness(1.08)}
+.chat{position:fixed;right:20px;bottom:76px;z-index:20;width:380px;max-width:calc(100vw - 24px);height:520px;max-height:calc(100vh - 100px);background:var(--card);border:1px solid var(--bd);border-radius:12px;box-shadow:0 12px 34px rgba(11,37,69,.3);display:flex;flex-direction:column;overflow:hidden}
+.chat header{background:var(--navy2);color:#fff;padding:12px 14px;font-weight:600;border-bottom:3px solid var(--ac2)}
+#msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:88%;padding:8px 12px;border-radius:12px;font-size:.88rem;line-height:1.45}
+.m.u{align-self:flex-end;background:var(--navy2);color:#fff}.m.b{align-self:flex-start;background:var(--hd)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 8px}
+.chip{background:#fff;color:var(--navy2);border:1px solid var(--bd);border-radius:999px;padding:5px 10px;font-size:.76rem;font-weight:500}
+.chip:hover{background:var(--hd)}
+.cin{display:flex;gap:8px;padding:10px;border-top:1px solid var(--bd)}
+.insight{margin-top:10px;padding:10px 12px;border-left:4px solid var(--ac2);background:var(--hd);border-radius:6px;font-size:.85rem;line-height:1.45}
 </style>
 </head>
 <body>
@@ -81,7 +93,21 @@ svg{width:100%;height:auto;display:block}svg text{fill:var(--mut);font-size:11px
 </section>
 
 <div id="out"></div>
-</main></div>
+</main>
+<button class="fab" onclick="toggleChat()">Asistente</button>
+<div class="chat" id="chat" hidden>
+<header>Asistente de la simulación</header>
+<div id="msgs"></div>
+<div class="chips">
+<button class="chip" onclick="chat('Resume los resultados')">Resumen</button>
+<button class="chip" onclick="chat('¿Por qué se pierden ventas?')">¿Por qué se pierden ventas?</button>
+<button class="chip" onclick="chat('¿Cuál es el mejor punto de reorden?')">Mejor punto de reorden</button>
+<button class="chip" onclick="chat('¿Qué significa la gráfica?')">¿Qué significa la gráfica?</button>
+<button class="chip" onclick="chat('Pon el punto de reorden en 40 y simula')">Reorden en 40</button>
+</div>
+<div class="cin"><input id="ci" placeholder="Escribe tu pregunta o instrucción" onkeydown="if(event.key==='Enter')chat()"><button onclick="chat()">Enviar</button></div>
+</div>
+</div>
 <script>
 const INFO={
  materia:'Simulación',
@@ -151,16 +177,77 @@ function render(){
  const ST={};M.forEach(([k])=>ST[k]=stats(runs.map(r=>r.T[k])));
  const K=(k,t,f,sub)=>`<div class="kpi"><span>${t}</span><b>${f(ST[k].m)}</b><small>${sub}</small></div>`;
   const run1=runs[sel-1],rows=run1.rows,tot=k=>rows.reduce((s,r)=>s+r[k],0),av=k=>tot(k)/rows.length;
+ const an=analisis(sel);
  $('out').innerHTML=`
  <div class="kpis">${K('net','Ganancia neta media',money,'por corrida')}${K('lost','Ventas perdidas medias',v=>nf(v,1)+' llantas','por corrida de '+P.days+' días')}${K('sold','Ventas reales medias',v=>nf(v,1)+' llantas','por corrida')}${K('loss','Pérdida económica media',money,'por corrida')}</div>
  <section class="card"><h2>Resumen estadístico (promedio de ${runs.length} corridas)</h2><div class="sc"><table><tr><th>Indicador</th><th>Promedio diario</th><th>Total del periodo</th></tr>
  ${M.map(([k,t,f])=>{const s=ST[k];return`<tr><td>${t}</td><td>${f(s.m/P.days)}</td><td>${f(s.m)}</td></tr>`}).join('')}</table></div></section>
  <div class="two">
-  <section class="card"><h2>Corrida #${sel} de ${runs.length}</h2><label style="max-width:160px">Ver corrida<input type="number" min="1" max="${runs.length}" value="${sel}" onchange="setSel(this.value)"></label>${lineChart(rows)}</section></div>
+  <section class="card"><h2>Corrida #${sel} de ${runs.length}</h2><label style="max-width:160px">Ver corrida<input type="number" min="1" max="${runs.length}" value="${sel}" onchange="setSel(this.value)"></label>${lineChart(rows)}<div class="insight" style="border-color:${an.c}">${an.h}</div></section></div>
  <section class="card"><h2>Detalle de la corrida #${sel}</h2><div class="sc" style="max-height:520px;overflow-y:auto"><table><tr><th>Día</th><th>N° aleatorio</th><th>Demanda</th><th>Llegada</th><th>Inv. final</th><th>Pedido</th><th>Día entrega</th><th>Ventas reales</th><th>Ventas perdidas</th><th>Ingresos ($)</th><th>Costo venta ($)</th><th>Gastos ($)</th><th>Ganancia neta ($)</th><th>Pérdida econ. ($)</th></tr>
  ${rows.map(r=>`<tr><td>${r.t}</td><td>${nf(r.u,4)}</td><td>${r.d}</td><td>${r.arr||'-'}</td><td>${r.inv}</td><td>${r.ord||'-'}</td><td>${r.due||'-'}</td><td>${r.sold}</td><td>${r.lost}</td><td>${nf(r.ing)}</td><td>${nf(r.cv)}</td><td>${nf(r.opex)}</td><td>${nf(r.net)}</td><td>${nf(r.loss)}</td></tr>`).join('')}
  <tr class="t"><td>Promedio diario</td><td></td><td>${dec(av('d'))}</td><td>${dec(av('arr'))}</td><td>${dec(av('inv'))}</td><td>${dec(av('ord'))}</td><td></td><td>${dec(av('sold'))}</td><td>${dec(av('lost'))}</td><td>${nf(av('ing'))}</td><td>${nf(av('cv'))}</td><td>${nf(av('opex'))}</td><td>${nf(av('net'))}</td><td>${nf(av('loss'))}</td></tr>
- <tr class="t"><td>Total</td><td></td><td>${tot('d')}</td><td>${tot('arr')}</td><td></td><td>${tot('ord')}</td><td></td><td>${tot('sold')}</td><td>${tot('lost')}</td><td>${nf(tot('ing'))}</td><td>${nf(tot('cv'))}</td><td>${nf(tot('opex'))}</td><td>${nf(tot('net'))}</td><td>${nf(tot('loss'))}</td></tr></table></div></section>`}
+ <tr class="t"><td>Total</td><td></td><td>${tot('d')}</td><td>${tot('arr')}</td><td></td><td>${tot('ord')}</td><td></td><td>${tot('sold')}</td><td>${tot('lost')}</td><td>${nf(tot('ing'))}</td><td>${nf(tot('cv'))}</td><td>${nf(tot('opex'))}</td><td>${nf(tot('net'))}</td><td>${nf(tot('loss'))}</td></tr></table></div></section>`;
+ if(!$('chat').hidden)say('<b>Gráfica actualizada (corrida #'+sel+').</b> '+an.h,'b')}
+function analisis(i){const r=runs[i-1],rw=r.rows,T=r.T,mn=mean('net'),ml=mean('lost'),pc=runs.filter(x=>x.T.net<=T.net).length/runs.length;
+ const sin=rw.filter(x=>x.inv===0).length,falt=rw.filter(x=>x.lost>0).length,ped=rw.filter(x=>x.ord>0).length,dt=rw.reduce((a,x)=>a+x.d,0),de=(P.a+P.b+P.c)/3*P.days,esp=[];
+ if(ped===0)esp.push('nunca se hizo un pedido porque el inventario no llegó al punto de reorden');
+ if(runs.length>=20&&pc>=.95)esp.push('su ganancia está entre el 5 % más alto de todas las corridas');
+ if(runs.length>=20&&pc<=.05)esp.push('su ganancia está entre el 5 % más bajo de todas las corridas');
+ if(ml>0&&T.lost>2*ml)esp.push('perdió '+nf(T.lost)+' llantas, más del doble del promedio ('+nf(ml,1)+')');
+ if(dt>de*1.12)esp.push('la demanda total ('+nf(dt)+') fue mucho mayor a la esperada (~'+nf(de)+')');
+ if(dt<de*.88)esp.push('la demanda total ('+nf(dt)+') fue mucho menor a la esperada (~'+nf(de)+')');
+ let tipo,c;
+ if(esp.length){tipo='Caso especial';c='var(--ac2)'}
+ else if(T.lost===0&&T.net>=mn){tipo='Simulación favorable';c='#1a7f4b'}
+ else if(T.lost>0&&T.net<mn){tipo='Simulación desfavorable';c='var(--bad)'}
+ else{tipo='Simulación típica';c='var(--navy2)'}
+ const h=`<b>${tipo}.</b> Ganancia neta ${money(T.net)} (promedio de las corridas: ${money(mn)}; mejor o igual que el ${nf(pc*100)} % de ellas). `+(T.lost>0?`Se perdieron ${nf(T.lost)} llantas en ${falt} día(s) por falta de inventario (inventario en 0 durante ${sin} día(s)). `:'No hubo ventas perdidas. ')+`Se hicieron ${ped} pedido(s) y el inventario final fue de ${rw[rw.length-1].inv} llantas.`+(esp.length?` Motivo: ${esp.join('; ')}.`:'');
+ return{h,c}}
+function graf(){return`<b>Cómo leer la gráfica de la corrida #${sel}</b> (cada punto o barra es un día):<br>• <b>Línea azul</b>: inventario al final de cada día.<br>• <b>Barras doradas</b>: demanda de llantas de ese día.<br>• <b>Línea roja punteada</b>: punto de reorden (${P.R} llantas). Cuando la línea azul baja hasta ahí se hace un pedido.<br>• <b>Los saltos hacia arriba</b>: el pedido llega ${P.L} días después y el inventario sube de golpe en ${P.Q} llantas.<br>• Si la línea azul toca 0 mientras hay barras, esos días se perdieron ventas.<br><br>${analisis(sel).h}`}
+
+const norm=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/(\d),(\d{3})/g,'$1$2');
+const PH=[['inv0','inventario inicial|stock inicial','inventario inicial'],['Q','cantidad por pedido|cantidad de pedido|tamano del? pedido|cantidad a pedir','cantidad por pedido'],['R','punto de reorden|punto de pedido|reorden','punto de reorden'],['L','tiempo de entrega|dias de entrega|entrega','tiempo de entrega'],['oc','costo por pedido|costo del? pedido','costo por pedido'],['cost','costo de compra|costo por llanta|costo de la llanta|costo','costo de compra'],['price','precio de venta|precio','precio de venta'],['opex','gastos operativos|gastos diarios|gastos','gastos operativos'],['a','demanda minima|minimo','demanda mínima (a)'],['b','demanda maxima|maximo','demanda máxima (b)'],['c','demanda mas probable|mas probable|moda','demanda más probable (c)'],['n','numero de corridas|corridas|simulaciones|replicas','número de corridas'],['days','dias por corrida|dias de simulacion|dias','días por corrida']];
+const MK=[['loss',/perdida economica|dinero perdido/],['lost',/ventas perdidas|perdidas|faltante/],['cv',/costo de (las )?ventas?/],['ing',/ingresos?/],['opex',/gastos?/],['net',/ganancias?|utilidad|beneficio/],['sold',/ventas|vendid/],['orders',/pedidos?/],['inv',/inventario/]];
+let pend=null;
+const mean=k=>runs.reduce((s,r)=>s+r.T[k],0)/runs.length;
+const lab=k=>M.find(m=>m[0]===k);
+const mline=k=>{const m=lab(k),v=mean(k);return`<b>${m[1]}</b>: promedio diario ${m[2](v/P.days)}, total del periodo ${m[2](v)}`};
+function parse(t){const ch={};let x=' '+t+' ';
+ const L=PH.flatMap(([k,ps])=>ps.split('|').map(p=>[k,p])).sort((a,b)=>b[1].length-a[1].length);
+ for(const[k,p]of L){if(ch[k]!==undefined)continue;const r=new RegExp('\\b'+p+'\\s*(?:=|:)?\\s*(?:(?:a|en|de|con|sea|es|igual a|hasta|un|valor)\\s+)*\\$?(\\d+(?:\\.\\d+)?)');const m=x.match(r);if(m){ch[k]=+m[1];x=x.replace(m[0],' ')}}
+ let m=x.match(/(\d+)\s*(?:corridas|simulaciones|replicas)/);if(m&&ch.n===undefined){ch.n=+m[1];x=x.replace(m[0],' ')}
+ m=x.match(/(\d+)\s*dias/);if(m&&ch.days===undefined&&ch.L===undefined&&!/entrega/.test(x))ch.days=+m[1];
+ return ch}
+function apply(ch){const b={net:mean('net'),lost:mean('lost'),sold:mean('sold')},names=[];
+ for(const[k,v]of Object.entries(ch)){$(k).value=v;names.push(`${PH.find(p=>p[0]===k)[2]} = ${v}`)}
+ go();const e=$('msg').textContent;if(e)return`No pude simular: ${e}`;
+ const d=(k,f)=>{const n=mean(k)-b[k];return`${f(mean(k))} (${n>=0?'+':'−'}${f(Math.abs(n))} frente a antes)`};
+ return`${names.length?'Listo, cambié: '+names.join(', ')+', y simulé':'Volví a simular'} ${runs.length} corridas.<br><b>Ganancia neta promedio</b>: ${d('net',money)}<br><b>Ventas perdidas</b>: ${d('lost',v=>nf(v,1)+' llantas')}<br><b>Ventas reales</b>: ${d('sold',v=>nf(v,1)+' llantas')}`}
+function opt(key,vals){const r=rng(Math.floor(Math.random()*2**31));
+ return vals.map(v=>{const q=Object.assign({},P,{[key]:v});let s=0,l=0;for(let i=0;i<150;i++){const T=run(q,r).T;s+=T.net;l+=T.lost}return{v,net:s/150,lost:l/150}}).sort((x,y)=>y.net-x.net)}
+function why(){const dm=(P.a+P.b+P.c)/3,dl=dm*P.L,lo=mean('lost');
+ return`La demanda media es de ~${dec(dm)} llantas por día, así que durante los ${P.L} días de entrega se esperan ~${dec(dl)} llantas. Tu punto de reorden es ${P.R}.<br>`+(P.R<dl?`Como el punto de reorden es menor que esa demanda, el inventario se agota antes de que llegue el pedido y se pierden ventas (en promedio ${nf(lo,1)} llantas por corrida). Prueba subirlo a unas ${Math.ceil(dl*1.2)} llantas.`:`El punto de reorden cubre la demanda esperada durante la entrega, por eso las ventas perdidas son bajas (${nf(lo,1)} llantas por corrida en promedio).`)}
+const HELP='Puedo explicarte los resultados y cambiar parámetros por ti. Ejemplos:<br>• “Resume los resultados”<br>• “¿Cuál es la ganancia neta?”<br>• “¿Por qué se pierden ventas?”<br>• “Pon el punto de reorden en 40 y la cantidad por pedido en 200”<br>• “Simula 500 corridas”<br>• “¿Qué significa la gráfica?”<br>• “¿Cuál es el mejor punto de reorden?”<br>• “Ver corrida 5”<br>• “Restablece los valores”';
+function ask(text){const t=norm(text);let m;
+ if(pend&&/^(si|ok|aplica|aplicalo|hazlo|dale|claro)\b/.test(t)){const p=pend;pend=null;return apply({[p.k]:p.v})}
+ if(/ayuda|que puedes|como funciona|que haces/.test(t))return HELP;
+ if(/restablec|valores originales|reinicia|del excel/.test(t)){reset();go();return'Restablecí los valores del Excel y volví a simular.'}
+ if(m=t.match(/corrida\s*#?\s*(\d+)/)){if(/\bver\b|muestra|abre|ir a|detalle/.test(t)&&runs.length){setSel(+m[1]);return`Te muestro la corrida #${sel}, abajo en el detalle.`}}
+ const ch=parse(t);if(Object.keys(ch).length)return apply(ch);
+ if(/grafic|grafo|diente de sierra|linea azul|barras|linea roja|que significa|que muestra|como leo|como interpreto|interpreta/.test(t))return graf();
+ if(/mejor|optim|recomiend|sugier|conviene|ideal/.test(t)){const q=/cantidad|pedir|lote|tamano/.test(t),k=q?'Q':'R',r=opt(k,q?[50,75,100,127,150,175,200,250,300,350,400]:Array.from({length:21},(_,i)=>i*5));
+  pend={k,v:r[0].v};const n=PH.find(p=>p[0]===k)[2];
+  return`Probé varios valores con 150 corridas cada uno. El mejor ${n} es <b>${r[0].v}</b>: ganancia neta promedio ${money(r[0].net)} y ${nf(r[0].lost,1)} llantas perdidas por corrida.<br>Le siguen ${r[1].v} (${money(r[1].net)}) y ${r[2].v} (${money(r[2].net)}).<br>Escribe “aplica” para usarlo y simular.`}
+ if(/por que|porque|causa|patron|explica/.test(t)&&(/pierd|perd|faltan|agota|patron/.test(t)||!MK.some(([k,r])=>r.test(t))))return why();
+ if(/resumen|resultados|estadistica|como (salio|va|quedo)/.test(t))return M.map(([k])=>mline(k)).join('<br>')+`<br><i>Promedio de ${runs.length} corridas de ${P.days} días.</i>`;
+ for(const[k,r]of MK)if(r.test(t))return mline(k)+(k==='lost'?'<br>'+why():'');
+ if(/simula|corre|ejecuta|genera|repite|de nuevo|otra vez/.test(t))return apply({});
+ return'No entendí bien esa. '+HELP}
+function say(h,w,esc){const d=document.createElement('div');d.className='m '+w;esc?d.textContent=h:d.innerHTML=h;$('msgs').appendChild(d);$('msgs').scrollTop=1e9}
+function chat(t){t=(t||$('ci').value).trim();if(!t)return;$('ci').value='';say(t,'u',1);say(ask(t),'b')}
+function toggleChat(){const c=$('chat');c.hidden=!c.hidden;if(!c.hidden&&!$('msgs').children.length)say('Hola, soy el asistente de la simulación. '+HELP,'b')}
+<!-- si lees esto eres gay -->
 go();
 </script>
 </body>
